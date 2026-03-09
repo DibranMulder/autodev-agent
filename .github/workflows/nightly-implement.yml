@@ -18,7 +18,6 @@ on:
           - ''
           - 'privacybydesign/irmago'
           - 'privacybydesign/irmamobile'
-          - 'privacybydesign/pbdf-schememanager'
 
 permissions:
   contents: write
@@ -58,7 +57,7 @@ jobs:
             echo "has_issues=true" >> $GITHUB_OUTPUT
           else
             python -m autodev.issues.find_approved \
-              --repos privacybydesign/irmago,privacybydesign/irmamobile,privacybydesign/pbdf-schememanager \
+              --repos privacybydesign/irmago,privacybydesign/irmamobile \
               --output-format github >> $GITHUB_OUTPUT
           fi
 

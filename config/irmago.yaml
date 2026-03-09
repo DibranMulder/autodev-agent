@@ -7,12 +7,24 @@ repository:
   lint_command: golangci-lint run
 
   focus_areas:
-    - IRMA server implementation
-    - Credential issuance and verification
+    # Protocol implementations
+    - OpenID4VCI credential issuance
+    - OpenID4VP credential presentation
+    - SIOPv2 self-issued provider
+    - ISO 18013-5 mDL protocol
+    - OID4IDA identity assurance
+
+    # Credential formats
+    - SD-JWT selective disclosure
+    - mdoc/mDL credentials
+    - W3C Verifiable Credentials
+    - JWT-VC format
+
+    # Core functionality
+    - IRMA session handling
+    - Credential issuance flows
+    - Attribute disclosure protocols
     - Cryptographic operations
-    - API endpoints
-    - Session management
-    - Privacy-preserving attribute disclosure
 
   excluded_paths:
     - vendor/
@@ -22,25 +34,33 @@ repository:
 
 # Specific improvement rules for irmago
 rules:
+  protocols:
+    - Implement OpenID4VCI for credential issuance (draft-13+)
+    - Add OpenID4VP presentation protocol support
+    - Implement SIOPv2 for wallet authentication
+    - Add ISO 18013-5 device retrieval protocol
+    - Support OID4IDA for identity assurance levels
+    - Implement credential offer handling
+    - Add presentation definition support
+
+  credential_formats:
+    - Add SD-JWT credential support (selective disclosure)
+    - Implement mdoc credential parsing and creation
+    - Support W3C VC Data Model 2.0
+    - Add JWT-VC credential handling
+    - Implement credential status checking (StatusList2021)
+    - Support key binding for holder binding
+
   testing:
-    - Ensure all public functions have unit tests
-    - Add integration tests for API endpoints
-    - Test error handling paths
-    - Add benchmarks for cryptographic operations
+    - Protocol flow integration tests
+    - Credential format parsing tests
+    - Cross-format interoperability tests
+    - Cryptographic operation tests
+    - Session handling tests
 
   security:
-    - Validate all user inputs
-    - Use constant-time comparison for secrets
-    - Ensure proper session handling
-    - Review cryptographic implementations
-
-  standards:
-    - Align with EUDI Wallet ARF requirements
-    - Support ISO/IEC 18013-5 mDL standard
-    - Implement eIDAS 2.0 trust framework
-    - Support SD-JWT credentials
-
-  documentation:
-    - Document public APIs
-    - Add examples for common use cases
-    - Update architecture documentation
+    - Implement proof-of-possession for credentials
+    - Add holder binding verification
+    - Secure key storage integration
+    - Protocol replay protection
+    - Validate credential schemas

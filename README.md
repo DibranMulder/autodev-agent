@@ -17,13 +17,39 @@ AutoDev runs nightly via GitHub Actions to:
 
 - [irmago](https://github.com/privacybydesign/irmago) - IRMA/Yivi server, client, and tooling (Go)
 - [irmamobile](https://github.com/privacybydesign/irmamobile) - Yivi app for iOS and Android (Dart/Flutter)
-- [pbdf-schememanager](https://github.com/privacybydesign/pbdf-schememanager) - Credential definitions and issuer info
+
+## Focus Areas
+
+The agent specifically looks for:
+
+### Missing Protocols
+- **OpenID4VCI** - Credential issuance protocol
+- **OpenID4VP** - Credential presentation protocol
+- **SIOPv2** - Self-Issued OpenID Provider
+- **ISO 18013-5** - mDL device retrieval
+- **OID4IDA** - Identity assurance
+
+### Missing Credential Formats
+- **SD-JWT** - Selective Disclosure JWT
+- **mdoc/mDL** - ISO 18013-5 mobile documents
+- **W3C Verifiable Credentials** - VC Data Model 2.0
+- **JWT-VC** - JWT-encoded Verifiable Credentials
 
 ## Monitored Sources
 
+### Standards & Specifications
 - [Age Verification Dev](https://ageverification.dev/) - EU Age Verification standards
 - [EUDI Wallet ARF](https://eudi.dev/) - European Digital Identity Wallet specifications
-- [eIDAS 2.0 specifications](https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation)
+- [eIDAS 2.0](https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation)
+
+### Protocol Specifications
+- [OpenID4VCI](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html)
+- [OpenID4VP](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html)
+- [SIOPv2](https://openid.net/specs/openid-connect-self-issued-v2-1_0.html)
+
+### Credential Format Specifications
+- [SD-JWT](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt)
+- [W3C VC Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
 
 ## Architecture
 
@@ -80,10 +106,9 @@ AutoDev runs nightly via GitHub Actions to:
 ## Configuration
 
 See `config/` for repository-specific settings:
-- `config/irmago.yaml` - irmago improvement rules
-- `config/irmamobile.yaml` - irmamobile improvement rules
-- `config/pbdf-schememanager.yaml` - pbdf-schememanager improvement rules
-- `config/sources.yaml` - Monitored source URLs and parsing rules
+- `config/sources.yaml` - Monitored sources (protocols, credential formats, standards)
+- `config/irmago.yaml` - irmago protocol/format improvement rules
+- `config/irmamobile.yaml` - irmamobile UI/UX improvement rules
 
 ## Setup
 

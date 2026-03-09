@@ -128,7 +128,6 @@ def status() -> None:
     repos = [
         "privacybydesign/irmago",
         "privacybydesign/irmamobile",
-        "privacybydesign/pbdf-schememanager",
     ]
 
     console.print("\n[bold]AutoDev Agent Status[/bold]\n")

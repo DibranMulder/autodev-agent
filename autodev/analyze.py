@@ -62,25 +62,41 @@ class RepositoryAnalyzer:
             model="claude-sonnet-4-20250514",
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
-            system="""You are an expert software developer analyzing repositories for the Privacy by Design Foundation.
-Your goal is to identify small, incremental improvements that:
-1. Improve code quality, testing, or documentation
-2. Align with EU digital identity standards (eIDAS, EUDI Wallet ARF)
-3. Enhance security and privacy
-4. Are testable and maintainable
+            system="""You are an expert in digital identity protocols and credential formats, analyzing repositories for the Privacy by Design Foundation (IRMA/Yivi project).
+
+Your PRIMARY goal is to identify missing or incomplete support for:
+
+## Protocols to look for:
+- OpenID4VCI (Verifiable Credential Issuance) - credential offer, authorization, token, credential endpoints
+- OpenID4VP (Verifiable Presentations) - presentation definition, submission, response
+- SIOPv2 (Self-Issued OpenID Provider) - wallet authentication
+- ISO 18013-5 (mDL) - device retrieval, session establishment
+- OID4IDA (Identity Assurance) - verified claims, assurance levels
+
+## Credential Formats to look for:
+- SD-JWT (Selective Disclosure JWT) - disclosures, key binding
+- mdoc/mDL (ISO 18013-5) - CBOR encoding, device authentication
+- W3C Verifiable Credentials 2.0 - JSON-LD, proof formats
+- JWT-VC - JWT-encoded verifiable credentials
+
+For each gap found, propose a small, incremental improvement that:
+1. Adds ONE specific protocol endpoint or credential format feature
+2. Includes tests for the new functionality
+3. Is implementable in a single PR
 
 Output your analysis as JSON with the structure:
 {
-    "summary": "Brief overview of the repository state",
+    "summary": "Brief overview of current protocol/format support",
     "opportunities": [
         {
-            "category": "testing|security|standards|documentation|performance|refactoring",
-            "title": "Short title for the improvement",
-            "description": "Detailed description of what should be changed",
-            "files_affected": ["list of files to modify"],
+            "category": "protocols|credential_formats|testing|security|standards_compliance",
+            "title": "Short title (e.g., 'Add OpenID4VCI credential offer endpoint')",
+            "description": "Detailed description including spec references",
+            "files_affected": ["list of files to modify or create"],
             "priority": 1-5 (1 highest),
             "effort": "small|medium|large",
-            "rationale": "Why this improvement matters"
+            "rationale": "Why this is needed for EUDI/eIDAS compliance",
+            "spec_reference": "Link or section reference to the relevant specification"
         }
     ]
 }""",
@@ -168,7 +184,7 @@ Output your analysis as JSON with the structure:
                 headings = content.get("headings", [])
                 source_summary.append(f"## {name}\nHeadings: {headings[:10]}")
 
-        return f"""Analyze this repository for improvement opportunities.
+        return f"""Analyze this repository for MISSING PROTOCOLS and CREDENTIAL FORMATS.
 
 ## Repository: {repo_config.name}
 Language: {repo_config.language}
@@ -186,15 +202,30 @@ Focus areas: {', '.join(repo_config.focus_areas)}
 ## Relevant Standards Updates
 {chr(10).join(source_summary)}
 
-## Task
-Identify 3-5 small, incremental improvements for this repository. Focus on:
-1. Test coverage gaps
-2. Security improvements
-3. Standards compliance (eIDAS 2.0, EUDI Wallet ARF)
-4. Code quality
-5. Documentation
+## CRITICAL: Protocol & Credential Format Analysis
 
-Each improvement should be implementable in a single PR with clear acceptance criteria.
+Search the codebase for implementations of:
+
+### Protocols (check if present/complete):
+1. **OpenID4VCI**: Look for credential_offer, authorization endpoint, token endpoint, credential endpoint
+2. **OpenID4VP**: Look for presentation_definition, vp_token, presentation_submission
+3. **SIOPv2**: Look for self-issued ID token, subject_syntax_types_supported
+4. **ISO 18013-5**: Look for mdoc, device retrieval, session transcript
+5. **OID4IDA**: Look for verified_claims, assurance_level
+
+### Credential Formats (check if present/complete):
+1. **SD-JWT**: Look for _sd, _sd_alg, disclosures, kb-jwt
+2. **mdoc**: Look for CBOR, IssuerSigned, DeviceSigned, DocType
+3. **W3C VC**: Look for @context, verifiableCredential, proof
+4. **JWT-VC**: Look for vc claim in JWT, credentialSubject
+
+## Task
+Identify 3-5 SPECIFIC missing protocol endpoints or credential format features.
+Each should be:
+- A single, well-defined addition (not "implement all of OpenID4VCI")
+- Testable with unit and integration tests
+- Referenced to specific spec sections
+
 Return your analysis as JSON."""
 
 

@@ -52,7 +52,6 @@ jobs:
           mkdir -p repos
           gh repo clone privacybydesign/irmago repos/irmago -- --depth=1
           gh repo clone privacybydesign/irmamobile repos/irmamobile -- --depth=1
-          gh repo clone privacybydesign/pbdf-schememanager repos/pbdf-schememanager -- --depth=1
 
       - name: Analyze repositories
         run: |
@@ -75,7 +74,7 @@ jobs:
         run: |
           python -m autodev.issues.create \
             --proposals data/proposals.json \
-            --repos privacybydesign/irmago,privacybydesign/irmamobile,privacybydesign/pbdf-schememanager
+            --repos privacybydesign/irmago,privacybydesign/irmamobile
 
       - name: Update tracking issue
         if: inputs.dry_run != 'true'

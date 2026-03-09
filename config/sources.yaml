@@ -1,10 +1,11 @@
 # Monitored sources for improvement discovery
 sources:
+  # EU Digital Identity Standards
   - name: ageverification_dev
     url: https://ageverification.dev/
     type: html
     selectors:
-      specs: "a[href*='spec'], a[href*='standard']"
+      specs: "a[href*='spec'], a[href*='standard'], a[href*='protocol']"
       updates: ".update, .news, .changelog"
     update_frequency: daily
 
@@ -14,6 +15,7 @@ sources:
     selectors:
       requirements: "h2, h3"
       annexes: "a[href*='annex']"
+      protocols: "a[href*='protocol'], a[href*='openid'], a[href*='iso']"
     update_frequency: daily
 
   - name: eudi_github
@@ -26,52 +28,107 @@ sources:
     type: html
     update_frequency: weekly
 
+  # Credential Format Specifications
+  - name: sd_jwt_spec
+    url: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt
+    type: html
+    selectors:
+      sections: "h2, h3"
+    update_frequency: weekly
+
+  - name: mdoc_iso18013
+    url: https://www.iso.org/standard/69084.html
+    type: html
+    update_frequency: weekly
+
+  - name: openid4vci
+    url: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
+    type: html
+    selectors:
+      sections: "h2, h3"
+      protocols: ".protocol, .flow"
+    update_frequency: daily
+
+  - name: openid4vp
+    url: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
+    type: html
+    selectors:
+      sections: "h2, h3"
+    update_frequency: daily
+
+  - name: w3c_vc_data_model
+    url: https://www.w3.org/TR/vc-data-model-2.0/
+    type: html
+    update_frequency: weekly
+
+  # Protocol Specifications
+  - name: siop_v2
+    url: https://openid.net/specs/openid-connect-self-issued-v2-1_0.html
+    type: html
+    update_frequency: weekly
+
+  - name: oid4ida
+    url: https://openid.net/specs/openid-connect-4-identity-assurance-1_0.html
+    type: html
+    update_frequency: weekly
+
 # Categories of improvements to look for
 categories:
+  - name: protocols
+    enabled: true
+    priority: 1
+    max_per_day: 3
+    prompt_template: |
+      Look for missing or incomplete protocol implementations:
+      - OpenID4VCI (credential issuance)
+      - OpenID4VP (credential presentation)
+      - SIOPv2 (self-issued OpenID provider)
+      - ISO 18013-5 (mDL presentation)
+      - OID4IDA (identity assurance)
+      Identify gaps between the specs and current implementation.
+
+  - name: credential_formats
+    enabled: true
+    priority: 1
+    max_per_day: 3
+    prompt_template: |
+      Look for missing or incomplete credential format support:
+      - SD-JWT (Selective Disclosure JWT)
+      - mdoc/mDL (ISO 18013-5)
+      - W3C Verifiable Credentials
+      - JWT-VC
+      - JSON-LD credentials
+      Identify which formats are missing or partially implemented.
+
   - name: testing
-    enabled: true
-    priority: 1
-    max_per_day: 2
-    prompt_template: |
-      Look for test coverage gaps, missing unit tests, integration tests,
-      or opportunities to improve test reliability and speed.
-
-  - name: security
-    enabled: true
-    priority: 1
-    max_per_day: 2
-    prompt_template: |
-      Look for security improvements: input validation, cryptographic
-      best practices, secure defaults, vulnerability fixes.
-
-  - name: standards
     enabled: true
     priority: 2
     max_per_day: 2
     prompt_template: |
-      Look for alignment opportunities with EU digital identity standards:
-      eIDAS 2.0, EUDI Wallet ARF, ISO/IEC standards for identity.
+      Look for test coverage gaps, especially for:
+      - Protocol flow tests
+      - Credential parsing/validation tests
+      - Cryptographic operation tests
+      - Integration tests for issuance/verification flows
 
-  - name: documentation
+  - name: security
     enabled: true
-    priority: 3
-    max_per_day: 1
+    priority: 2
+    max_per_day: 2
     prompt_template: |
-      Look for documentation improvements: API docs, code comments,
-      README updates, example code.
+      Look for security improvements related to:
+      - Cryptographic best practices
+      - Secure credential storage
+      - Protocol security (replay protection, binding)
+      - Input validation for credential data
 
-  - name: performance
+  - name: standards_compliance
     enabled: true
-    priority: 3
-    max_per_day: 1
+    priority: 2
+    max_per_day: 2
     prompt_template: |
-      Look for performance optimizations: algorithm improvements,
-      caching opportunities, resource efficiency.
-
-  - name: refactoring
-    enabled: true
-    priority: 4
-    max_per_day: 1
-    prompt_template: |
-      Look for code quality improvements: reducing complexity,
-      improving readability, removing duplication.
+      Look for alignment opportunities with:
+      - eIDAS 2.0 requirements
+      - EUDI Wallet ARF specifications
+      - EU Age Verification profile
+      - ISO/IEC identity standards

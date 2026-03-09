@@ -26,11 +26,17 @@ This issue tracks all AutoDev Agent activity for this repository.
 | `autodev-approved` | Approved, will be implemented in next run |
 | `autodev-draft` | Draft PR created, awaiting review |
 
+### Focus Areas
+
+**Protocols:** OpenID4VCI, OpenID4VP, SIOPv2, ISO 18013-5, OID4IDA
+
+**Credential Formats:** SD-JWT, mdoc/mDL, W3C VC, JWT-VC
+
 ### Monitored Standards
 
 - [EU Age Verification](https://ageverification.dev/)
 - [EUDI Wallet ARF](https://eudi.dev/)
-- eIDAS 2.0 specifications
+- [OpenID4VCI/VP Specs](https://openid.net/)
 
 ### Configuration
 
@@ -43,7 +49,6 @@ AutoDev is configured via [autodev-agent](https://github.com/privacybydesign/aut
 REPOS = [
     "privacybydesign/irmago",
     "privacybydesign/irmamobile",
-    "privacybydesign/pbdf-schememanager",
 ]
 
 LABELS = [

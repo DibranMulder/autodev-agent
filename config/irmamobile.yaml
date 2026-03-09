@@ -7,12 +7,24 @@ repository:
   lint_command: flutter analyze
 
   focus_areas:
-    - Mobile wallet UI/UX
-    - Credential storage and display
-    - QR code scanning
-    - Secure enclave integration
-    - Push notifications
-    - Accessibility
+    # Protocol support in mobile
+    - OpenID4VCI credential issuance UI
+    - OpenID4VP presentation flows
+    - SIOPv2 wallet authentication
+    - QR code protocol handling
+    - Deep link protocol handling
+
+    # Credential format display
+    - SD-JWT credential rendering
+    - mdoc/mDL credential display
+    - W3C VC credential cards
+    - Selective disclosure UI
+
+    # Mobile wallet features
+    - Credential storage UI
+    - Presentation consent screens
+    - Issuance acceptance flows
+    - Credential detail views
 
   excluded_paths:
     - build/
@@ -23,25 +35,32 @@ repository:
 
 # Specific improvement rules for irmamobile
 rules:
+  protocols:
+    - Add OpenID4VCI issuance flow UI
+    - Implement OpenID4VP presentation consent
+    - Support credential offer deep links
+    - Handle authorization request URIs
+    - Implement same-device and cross-device flows
+    - Add transaction signing UI (if needed by protocol)
+
+  credential_formats:
+    - Display SD-JWT credentials with disclosure options
+    - Render mdoc/mDL credentials (driver license UI)
+    - Show W3C VC credentials appropriately
+    - Implement selective attribute disclosure UI
+    - Support credential preview before acceptance
+    - Show credential validity and status
+
   testing:
-    - Widget tests for all screens
-    - Integration tests for critical flows
-    - Golden tests for UI consistency
-    - Test accessibility features
+    - Widget tests for protocol flow screens
+    - Integration tests for issuance/presentation
+    - Golden tests for credential card rendering
+    - Test selective disclosure UI interactions
+    - Accessibility tests for consent screens
 
   security:
-    - Secure credential storage
-    - Biometric authentication handling
-    - Secure communication channels
-    - App attestation
-
-  standards:
-    - EUDI Wallet UI guidelines
-    - WCAG 2.1 accessibility
-    - Platform-specific design guidelines
-    - Internationalization support
-
-  documentation:
-    - User-facing feature documentation
-    - Developer setup guide
-    - Architecture decisions
+    - Biometric confirmation for presentations
+    - Secure credential preview
+    - User consent for attribute disclosure
+    - Clear indication of what is being shared
+    - Transaction binding confirmation UI
