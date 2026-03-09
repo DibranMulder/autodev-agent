@@ -1,7 +1,20 @@
 # Monitored sources for improvement discovery
 # PRIMARY FOCUS: Age Verification Interoperability with EU AV Blueprint
+#
+# ECOSYSTEM CONTEXT:
+# - PBDF has own EU AV issuer: go-passport-issuer
+# - Issues SD-JWT VC over IRMA protocol (NOT OpenID4VCI)
+# - External EU issuers not expected soon
+# - Priority: SD-JWT presentation > mdoc > OpenID4VCI
 
 sources:
+  # PBDF's own EU Age Verification Issuer (HIGHEST PRIORITY)
+  - name: go_passport_issuer
+    url: https://github.com/privacybydesign/go-passport-issuer
+    type: github
+    update_frequency: daily
+    priority: 1
+    notes: "PBDF's EU AV issuer - issues SD-JWT VC over IRMA protocol"
   # PRIMARY: EU Age Verification Blueprint (HIGHEST PRIORITY)
   - name: ageverification_dev
     url: https://ageverification.dev/
@@ -59,59 +72,70 @@ sources:
     priority: 3
 
 # Categories - Focus on INTEROPERABILITY
+# PRIORITIES ADJUSTED for PBDF ecosystem (go-passport-issuer uses SD-JWT + IRMA)
 categories:
-  - name: age_verification_interop
+  - name: sdjwt_age_presentation
     enabled: true
     priority: 1
-    max_per_day: 5
+    max_per_day: 3
     prompt_template: |
-      HIGHEST PRIORITY: Age Verification INTEROPERABILITY with EU AV Blueprint.
+      HIGHEST PRIORITY: SD-JWT Age Verification PRESENTATION
 
-      The EU Age Verification solution (ageverification.dev) requires:
+      ECOSYSTEM CONTEXT:
+      PBDF's go-passport-issuer (https://github.com/privacybydesign/go-passport-issuer)
+      already issues SD-JWT VC credentials with age_over_18 over IRMA protocol.
 
-      1. CREDENTIAL FORMAT (eu.europa.ec.av.1):
-         - DocType: eu.europa.ec.av.1
-         - Namespace: eu.europa.ec.av.1
-         - Required attribute: age_over_18 (boolean)
-         - Optional: age_over_NN for other thresholds
-         - Format: mdoc (ISO 18013-5) primary, SD-JWT alternative
-         - Validity: Max 3 months
-         - Batch issuance: 30 attestations recommended
+      IMMEDIATE FOCUS:
+      1. Presenting SD-JWT age credentials via OpenID4VP
+      2. age_over_18 / age_over_X attribute display in wallet UI
+      3. Privacy-preserving presentation (show "over 18" not birthdate)
+      4. User consent UI specifically for age verification
+      5. Integration with go-passport-issuer credentials
 
-      2. PROTOCOLS:
-         - OpenID4VCI for issuance (with wallet attestation)
-         - OpenID4VP for presentation
-         - Same-device and cross-device flows
+      This is the TOP priority - credentials are already being issued!
 
-      3. TRUST FRAMEWORK:
-         - ETSI trusted list validation
-         - Trust anchor certificate verification
-         - Attestation provider registration check
-
-      4. DEVICE SECURITY:
-         - Secure Enclave/TEE key storage
-         - User authentication before presentation
-         - Single-use attestation tracking
-
-      Check what IRMA/Yivi is MISSING for interoperability.
-
-  - name: protocols
+  - name: credential_type_eu_av
     enabled: true
     priority: 2
     max_per_day: 2
     prompt_template: |
-      Protocol gaps for EU AV interoperability:
-      - OpenID4VCI with wallet attestation
-      - OpenID4VP presentation flows
-      - ETSI trusted list fetching
+      EU Age Verification credential type (eu.europa.ec.av.1).
 
-  - name: credential_formats
+      Define the standardized credential type:
+      - DocType/vct: eu.europa.ec.av.1
+      - Namespace: eu.europa.ec.av.1
+      - Required: age_over_18 (boolean)
+      - Optional: age_over_NN thresholds
+      - Max validity: 3 months
+
+  - name: trust_framework
     enabled: true
-    priority: 2
+    priority: 3
     max_per_day: 2
     prompt_template: |
-      Credential format gaps for EU AV interoperability:
-      - mdoc with eu.europa.ec.av.1 doctype
-      - age_over_18 boolean attribute
-      - Batch issuance support
-      - 3-month validity enforcement
+      Trust framework for EU AV interoperability:
+      - ETSI trusted list validation
+      - Certificate chain verification
+      - Attestation provider validation
+
+  - name: mdoc_format
+    enabled: true
+    priority: 4
+    max_per_day: 1
+    prompt_template: |
+      mdoc format support (LOWER PRIORITY).
+
+      NOTE: PBDF's issuer uses SD-JWT VC, not mdoc.
+      mdoc is for FUTURE interoperability with other EU issuers.
+      Only propose if higher-priority items are addressed.
+
+  - name: openid4vci
+    enabled: true
+    priority: 5
+    max_per_day: 1
+    prompt_template: |
+      OpenID4VCI issuance protocol (LOWEST PRIORITY).
+
+      NOTE: PBDF's go-passport-issuer uses IRMA protocol.
+      External EU issuers not expected soon.
+      Only propose if other items are addressed.

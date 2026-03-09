@@ -17,6 +17,33 @@ from autodev.llm import query_llm, extract_json, get_llm_backend
 
 logger = logging.getLogger(__name__)
 
+# PBDF Ecosystem Context
+PBDF_ECOSYSTEM_CONTEXT = """
+## PBDF Ecosystem Context (CRITICAL - READ FIRST)
+
+Privacy by Design Foundation has their OWN EU Age Verification issuer:
+- **Repository**: https://github.com/privacybydesign/go-passport-issuer
+- **Credential format**: SD-JWT VC (NOT mdoc)
+- **Issuance protocol**: IRMA protocol (NOT OpenID4VCI)
+- **Capability**: Issues age_over_18 credentials from passport/ID via NFC
+
+### Priority Adjustments Based on Ecosystem
+
+| Gap | Original Priority | Adjusted Priority | Reason |
+|-----|-------------------|-------------------|--------|
+| OpenID4VCI | Critical | Lower | Own issuer uses IRMA, external issuers not available soon |
+| mdoc format | Critical | Medium | Own issuer uses SD-JWT; mdoc for future external issuers |
+| SD-JWT age presentation | Medium | **Critical** | Immediate need with go-passport-issuer |
+| age_over_X display | Medium | **Critical** | Must display credentials from own issuer |
+
+### What This Means for Analysis
+
+1. **DO NOT prioritize OpenID4VCI** - the PBDF issuer uses IRMA protocol
+2. **PRIORITIZE SD-JWT VC age verification** - this is what go-passport-issuer produces
+3. **mdoc is for FUTURE interop** with other EU issuers (not immediate)
+4. **Focus on PRESENTATION** of age credentials, not just issuance
+"""
+
 # Specific interoperability requirements from EU Age Verification Blueprint
 EU_AV_INTEROP_REQUIREMENTS = """
 ## EU Age Verification Interoperability Requirements
@@ -65,6 +92,8 @@ for wallet interoperability:
 """
 
 SYSTEM_PROMPT = f"""You are an expert in digital identity interoperability, analyzing the IRMA/Yivi repositories for compatibility with the EU Age Verification Blueprint.
+
+{PBDF_ECOSYSTEM_CONTEXT}
 
 {EU_AV_INTEROP_REQUIREMENTS}
 

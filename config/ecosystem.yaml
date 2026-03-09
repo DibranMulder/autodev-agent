@@ -1,0 +1,77 @@
+# Privacy by Design Foundation Ecosystem Context
+# This file contains knowledge about the PBDF ecosystem for analysis
+
+ecosystem:
+  name: "Privacy by Design Foundation"
+  description: "Dutch foundation developing IRMA/Yivi identity wallet"
+
+  # EU Age Verification Issuer
+  eu_av_issuer:
+    name: "go-passport-issuer"
+    repo: "https://github.com/privacybydesign/go-passport-issuer"
+    description: |
+      PBDF's EU Age Verification issuer. Issues age verification credentials
+      by reading passport/ID card data via NFC and deriving age_over_X attributes.
+
+    # Current capabilities
+    capabilities:
+      - "Issues SD-JWT VC credentials"
+      - "Uses IRMA protocol for issuance (not OpenID4VCI)"
+      - "Reads passport/ID via NFC (ICAO 9303)"
+      - "Derives age_over_18 from birthdate"
+      - "EU Age Verification compliant issuer"
+
+    # Protocol used
+    issuance_protocol: "IRMA"  # NOT OpenID4VCI
+    credential_format: "SD-JWT VC"  # NOT mdoc
+
+    # Implications for analysis
+    implications:
+      - "OpenID4VCI is LOWER priority - own issuer uses IRMA protocol"
+      - "SD-JWT VC is the PRIMARY format for PBDF ecosystem"
+      - "mdoc support is for RECEIVING from OTHER EU issuers (future)"
+      - "Focus on SD-JWT VC age verification presentation"
+      - "Interop with go-passport-issuer is immediate priority"
+
+  # External EU AV issuers
+  external_issuers:
+    availability: "Not expected soon"
+    notes: |
+      Other EU Age Verification issuers are not expected to be available
+      in the near term. Focus should be on PBDF's own issuer first.
+
+  # Priority adjustments based on ecosystem
+  priority_adjustments:
+    openid4vci:
+      original_priority: 1
+      adjusted_priority: 3
+      reason: "Own issuer uses IRMA protocol, external issuers not available soon"
+
+    mdoc_format:
+      original_priority: 1
+      adjusted_priority: 2
+      reason: "Own issuer uses SD-JWT VC; mdoc needed for future external issuers"
+
+    sdjwt_age_verification:
+      original_priority: 2
+      adjusted_priority: 1
+      reason: "Immediate need - own issuer already produces SD-JWT VC"
+
+    age_over_x_presentation:
+      original_priority: 2
+      adjusted_priority: 1
+      reason: "Critical for presenting credentials from go-passport-issuer"
+
+# Repositories in ecosystem
+repositories:
+  - name: irmago
+    role: "Core server and client library"
+
+  - name: irmamobile
+    role: "Mobile wallet app (Yivi)"
+
+  - name: go-passport-issuer
+    role: "EU Age Verification issuer"
+    url: "https://github.com/privacybydesign/go-passport-issuer"
+    issues_sd_jwt: true
+    uses_irma_protocol: true
