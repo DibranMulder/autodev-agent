@@ -17,43 +17,93 @@ from autodev.llm import query_llm, extract_json, get_llm_backend
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert in digital identity protocols and age verification, analyzing repositories for the Privacy by Design Foundation (IRMA/Yivi project).
+# Specific interoperability requirements from EU Age Verification Blueprint
+EU_AV_INTEROP_REQUIREMENTS = """
+## EU Age Verification Interoperability Requirements
 
-## CRITICAL RULES:
-1. **DO NOT propose work that is already in progress** - Check the existing issues and PRs provided
-2. **PRIORITIZE AGE VERIFICATION** - This is the highest priority for EUDI compliance
-3. **Be specific** - Each proposal should be a single, well-defined task
+The EU Age Verification solution (ageverification.dev) defines these MANDATORY requirements
+for wallet interoperability:
 
-## PRIMARY FOCUS: Age Verification Interoperability
-The EU Age Verification solution (ageverification.dev) defines how wallets should:
-- Issue age verification credentials (age_over_18, age_over_21, etc.)
-- Present age proofs using zero-knowledge or selective disclosure
-- Integrate with the EUDI Wallet ARF age verification profile
+### 1. CREDENTIAL FORMAT (eu.europa.ec.av.1)
+- **DocType**: `eu.europa.ec.av.1`
+- **Namespace**: `eu.europa.ec.av.1`
+- **Required attribute**: `age_over_18` (boolean, MANDATORY)
+- **Optional attributes**: `age_over_NN` for other thresholds (21, 65, etc.)
+- **Primary format**: mdoc (ISO/IEC 18013-5)
+- **Alternative format**: SD-JWT VC (per HAIP profile)
+- **Validity period**: Maximum 3 months from issuance
+- **Batch issuance**: 30 attestations per batch recommended
+- **No additional attributes permitted** (privacy by design)
 
-## Secondary Focus: Protocol & Format Support
-- OpenID4VCI/VP protocols
-- SD-JWT and mdoc credential formats
-- SIOPv2 wallet authentication
+### 2. ISSUANCE PROTOCOL (OpenID4VCI)
+- Pre-authorized code flow for out-of-band identity verification
+- Wallet attestation authentication required
+- Batch credential issuance support
+- Device key binding through MSO (Mobile Security Object)
+
+### 3. PRESENTATION PROTOCOL (OpenID4VP)
+- Same-device presentation flow
+- Cross-device presentation flow (QR code)
+- Single-use attestation enforcement
+- User authentication before presentation (PIN/biometric)
+
+### 4. TRUST FRAMEWORK
+- ETSI trusted list validation (ETSI TS 119 612)
+- Trust anchor: https://eidas.ec.europa.eu/efda/trust-services/browse/av-tl
+- Attestation provider certificate validation
+- QTSP or provider-operated PKI certificates
+
+### 5. DEVICE SECURITY
+- Secure Enclave (iOS) / TEE/Strongbox (Android) key storage
+- Hardware-backed cryptographic operations
+- Single-use tracking to prevent attestation reuse
+
+### 6. ZERO-KNOWLEDGE PROOFS (Optional, Annex B)
+- zkSNARK-based age verification
+- Prove age_over_X without revealing birthdate
+- Backward-compatible with standard presentation
+"""
+
+SYSTEM_PROMPT = f"""You are an expert in digital identity interoperability, analyzing the IRMA/Yivi repositories for compatibility with the EU Age Verification Blueprint.
+
+{EU_AV_INTEROP_REQUIREMENTS}
+
+## YOUR TASK
+Identify SPECIFIC gaps that prevent IRMA/Yivi from interoperating with EU Age Verification issuers and verifiers.
+
+## RULES
+1. **Focus on INTEROPERABILITY** - What's missing to work with EU AV infrastructure?
+2. **Be SPECIFIC** - Reference exact doctype, namespace, attribute names
+3. **Check existing work** - Don't propose duplicates
+4. **Prioritize by impact** - What blocks interoperability vs. nice-to-have?
 
 ## Output Format
-Return JSON with this structure:
-{
-    "summary": "Brief overview of current state and gaps",
-    "existing_work_acknowledged": ["list of existing issues/PRs you considered"],
+Return JSON:
+{{
+    "summary": "Interoperability assessment summary",
+    "interop_status": {{
+        "credential_format_eu_av_1": "not_supported|partial|full",
+        "openid4vci_issuance": "not_supported|partial|full",
+        "openid4vp_presentation": "not_supported|partial|full",
+        "etsi_trust_list": "not_supported|partial|full",
+        "batch_issuance": "not_supported|partial|full",
+        "device_security": "not_supported|partial|full"
+    }},
+    "existing_work_acknowledged": ["list of relevant issues/PRs"],
     "opportunities": [
-        {
-            "category": "age_verification|protocols|credential_formats|testing|standards_compliance",
-            "title": "Short, specific title",
-            "description": "Detailed description with spec references",
-            "files_affected": ["list of files"],
-            "priority": 1-5 (1 highest),
+        {{
+            "category": "age_verification_interop|protocols|credential_formats",
+            "title": "Specific interop gap title",
+            "description": "Detailed description with EU AV spec references",
+            "interop_impact": "critical|high|medium - why this blocks interop",
+            "files_affected": ["files"],
+            "priority": 1-5,
             "effort": "small|medium|large",
-            "rationale": "Why this matters for age verification/EUDI compliance",
-            "spec_reference": "Link to relevant specification",
-            "not_duplicate_because": "Explain why this doesn't duplicate existing work"
-        }
+            "spec_reference": "ageverification.dev section or annex",
+            "not_duplicate_because": "reason"
+        }}
     ]
-}"""
+}}"""
 
 
 class RepositoryAnalyzer:
@@ -73,6 +123,7 @@ class RepositoryAnalyzer:
         results = {
             "analyzed_at": datetime.now(timezone.utc).isoformat(),
             "llm_backend": get_llm_backend(),
+            "focus": "EU Age Verification Interoperability",
             "repositories": {},
         }
 
@@ -88,7 +139,7 @@ class RepositoryAnalyzer:
             logger.info(f"Checking existing work in {full_repo_name}...")
             existing_work = check_existing_work(full_repo_name, repo_path)
 
-            logger.info(f"Analyzing {repo_config.name} using {get_llm_backend()} backend...")
+            logger.info(f"Analyzing {repo_config.name} for EU AV interoperability...")
             analysis = self._analyze_repository(
                 repo_path, repo_config, sources_data, existing_work
             )
@@ -99,11 +150,10 @@ class RepositoryAnalyzer:
                 for opp in analysis["opportunities"]:
                     is_dup, reason = is_duplicate_proposal(opp.get("title", ""), existing_work)
                     if is_dup:
-                        logger.info(f"Filtered duplicate proposal: {opp.get('title')} - {reason}")
+                        logger.info(f"Filtered duplicate: {opp.get('title')} - {reason}")
                     else:
                         filtered.append(opp)
                 analysis["opportunities"] = filtered
-                analysis["filtered_duplicates"] = len(analysis.get("opportunities", [])) - len(filtered)
 
             results["repositories"][repo_config.name] = analysis
 
@@ -117,15 +167,9 @@ class RepositoryAnalyzer:
         existing_work: ExistingWork,
     ) -> dict[str, Any]:
         """Analyze a single repository."""
-        # Gather repository context
         context = self._gather_context(repo_path, repo_config)
+        prompt = self._build_analysis_prompt(context, sources_data, repo_config, existing_work)
 
-        # Build analysis prompt with existing work context
-        prompt = self._build_analysis_prompt(
-            context, sources_data, repo_config, existing_work
-        )
-
-        # Query LLM
         response = query_llm(
             prompt=prompt,
             system_prompt=SYSTEM_PROMPT,
@@ -140,7 +184,6 @@ class RepositoryAnalyzer:
                 "error": response.error,
             }
 
-        # Parse response
         result = extract_json(response.content)
 
         if result is None:
@@ -160,6 +203,9 @@ class RepositoryAnalyzer:
             "structure": [],
             "readme": "",
             "recent_commits": [],
+            "age_verification_files": [],
+            "credential_format_files": [],
+            "protocol_files": [],
         }
 
         # Get directory structure
@@ -173,19 +219,32 @@ class RepositoryAnalyzer:
                 timeout=30,
             )
             files = [f for f in result.stdout.strip().split("\n") if f]
-            # Filter out excluded paths
             for excluded in repo_config.excluded_paths:
                 files = [f for f in files if excluded not in f]
             context["structure"] = files[:100]
+
+            # Identify relevant files for interop analysis
+            for f in files:
+                f_lower = f.lower()
+                if any(kw in f_lower for kw in ["age", "av", "verification"]):
+                    context["age_verification_files"].append(f)
+                if any(kw in f_lower for kw in ["mdoc", "sdjwt", "credential", "format"]):
+                    context["credential_format_files"].append(f)
+                if any(kw in f_lower for kw in ["openid", "oid4", "vci", "vp", "protocol"]):
+                    context["protocol_files"].append(f)
+
         except Exception as e:
             logger.warning(f"Failed to get structure: {e}")
 
         # Read README
-        for readme_name in ["README.md", "README", "readme.md"]:
+        for readme_name in ["README.md", "README", "readme.md", "CHANGELOG.md"]:
             readme_path = repo_path / readme_name
             if readme_path.exists():
-                context["readme"] = readme_path.read_text()[:5000]
-                break
+                content = readme_path.read_text()[:5000]
+                if readme_name == "CHANGELOG.md":
+                    context["changelog"] = content
+                else:
+                    context["readme"] = content
 
         # Get recent commits
         try:
@@ -210,80 +269,66 @@ class RepositoryAnalyzer:
         existing_work: ExistingWork,
     ) -> str:
         """Build the analysis prompt."""
-        # Format existing work context
         existing_work_context = format_existing_work_context(existing_work)
 
-        # Extract age verification specific info from sources
-        age_verification_info = ""
-        for name, data in sources_data.get("sources", {}).items():
-            if "ageverification" in name.lower() or "age" in name.lower():
-                if "error" not in data:
-                    content = data.get("content", {})
-                    headings = content.get("headings", [])
-                    age_verification_info += f"\n### {name}\n"
-                    for h in headings[:15]:
-                        age_verification_info += f"- {h.get('text', '')}\n"
-
-        # Extract other source summaries
-        source_summary = []
-        for name, data in sources_data.get("sources", {}).items():
-            if "error" not in data and "ageverification" not in name.lower():
-                content = data.get("content", {})
-                headings = content.get("headings", [])
-                source_summary.append(f"## {name}\nHeadings: {[h.get('text', '') for h in headings[:5]]}")
-
-        return f"""Analyze this repository for improvement opportunities.
-IMPORTANT: Focus on AGE VERIFICATION first, then other gaps.
-CRITICAL: DO NOT propose work that duplicates existing issues or PRs!
+        return f"""Analyze {repo_config.name} for EU Age Verification INTEROPERABILITY gaps.
 
 ## Repository: {repo_config.name}
 Language: {repo_config.language}
-Focus areas: {', '.join(repo_config.focus_areas)}
 
 ## EXISTING WORK - DO NOT DUPLICATE
 {existing_work_context}
 
-## File Structure (sample)
+## File Structure
 {chr(10).join(context['structure'][:40])}
 
+## Potentially Relevant Files
+- Age verification: {context.get('age_verification_files', [])}
+- Credential formats: {context.get('credential_format_files', [])}
+- Protocols: {context.get('protocol_files', [])}
+
 ## README
-{context['readme'][:2500]}
+{context.get('readme', 'Not found')[:2000]}
 
 ## Recent Commits
-{chr(10).join(context['recent_commits'][:20])}
+{chr(10).join(context['recent_commits'][:15])}
 
-## AGE VERIFICATION STANDARDS (HIGHEST PRIORITY)
-{age_verification_info}
+## INTEROPERABILITY CHECKLIST
 
-## Other Standards Updates
-{chr(10).join(source_summary[:5])}
+Check each EU AV requirement and report status:
 
-## Analysis Tasks
+### 1. Credential Format (eu.europa.ec.av.1)
+- [ ] Does it support mdoc with doctype `eu.europa.ec.av.1`?
+- [ ] Does it support namespace `eu.europa.ec.av.1`?
+- [ ] Does it support `age_over_18` boolean attribute?
+- [ ] Does it enforce max 3-month validity?
+- [ ] Does it support batch issuance (30 attestations)?
 
-### 1. Age Verification (PRIORITY 1)
-Check for:
-- age_over_X attribute support (age_over_18, age_over_21, etc.)
-- Zero-knowledge age proof implementation
-- Age verification credential issuance
-- Age verification presentation flows
-- EU Age Verification profile compliance
+### 2. OpenID4VCI Issuance
+- [ ] Is OpenID4VCI implemented? (CHECK EXISTING WORK!)
+- [ ] Does it support wallet attestation?
+- [ ] Does it support pre-authorized code flow?
+- [ ] Does it support batch credential issuance?
 
-### 2. Protocol Gaps (PRIORITY 2)
-Only if NOT already in progress:
-- OpenID4VCI, OpenID4VP, SIOPv2, ISO 18013-5
+### 3. OpenID4VP Presentation
+- [ ] Is OpenID4VP implemented?
+- [ ] Does it support same-device flow?
+- [ ] Does it support cross-device flow?
+- [ ] Does it enforce single-use attestations?
 
-### 3. Credential Format Gaps (PRIORITY 2)
-Only if NOT already in progress:
-- SD-JWT, mdoc, W3C VC
+### 4. Trust Framework
+- [ ] Can it fetch ETSI trusted lists?
+- [ ] Can it validate attestation provider certificates?
+- [ ] Does it check trust anchor chain?
 
-## Rules
-1. Check existing issues/PRs before proposing anything
-2. Explain why each proposal doesn't duplicate existing work
-3. Prioritize age verification over other improvements
-4. Be specific - one clear task per proposal
-5. Maximum 5 proposals, sorted by priority
+### 5. Device Security
+- [ ] Does it use Secure Enclave/TEE for keys?
+- [ ] Does it require user auth before presentation?
 
-Return your analysis as JSON."""
+## Task
+Identify the TOP 3-5 gaps that block EU AV interoperability.
+Focus on what's MISSING, not what exists.
+Return analysis as JSON."""
 
 
 def main():

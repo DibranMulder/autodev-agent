@@ -1,22 +1,25 @@
 # Monitored sources for improvement discovery
-# Priority: Age Verification > EUDI Compliance > Protocol Support
+# PRIMARY FOCUS: Age Verification Interoperability with EU AV Blueprint
 
 sources:
-  # PRIMARY: Age Verification (highest priority)
+  # PRIMARY: EU Age Verification Blueprint (HIGHEST PRIORITY)
   - name: ageverification_dev
     url: https://ageverification.dev/
     type: html
     selectors:
       specs: "a[href*='spec'], a[href*='standard'], a[href*='protocol']"
-      updates: ".update, .news, .changelog"
     update_frequency: daily
     priority: 1
 
-  - name: age_verification_spec
+  - name: age_verification_architecture
     url: https://ageverification.dev/av-doc-technical-specification/docs/architecture-and-technical-specifications/
     type: html
-    selectors:
-      requirements: "h2, h3, h4"
+    update_frequency: daily
+    priority: 1
+
+  - name: age_verification_annex_a
+    url: https://ageverification.dev/av-doc-technical-specification/docs/architecture-and-technical-specifications/annex-a/
+    type: html
     update_frequency: daily
     priority: 1
 
@@ -26,131 +29,89 @@ sources:
     type: html
     selectors:
       requirements: "h2, h3"
-      annexes: "a[href*='annex']"
-      protocols: "a[href*='protocol'], a[href*='openid'], a[href*='iso']"
     update_frequency: daily
     priority: 2
 
-  - name: eudi_github
-    url: https://github.com/eu-digital-identity-wallet
-    type: github
-    update_frequency: daily
-    priority: 2
-
-  - name: eidas_specs
-    url: https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation
-    type: html
-    update_frequency: weekly
-    priority: 2
-
-  # Protocol Specifications
+  # Protocol Specifications (for interop)
   - name: openid4vci
     url: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
     type: html
-    selectors:
-      sections: "h2, h3"
-      protocols: ".protocol, .flow"
     update_frequency: daily
-    priority: 3
+    priority: 2
 
   - name: openid4vp
     url: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
     type: html
-    selectors:
-      sections: "h2, h3"
     update_frequency: daily
-    priority: 3
-
-  - name: siop_v2
-    url: https://openid.net/specs/openid-connect-self-issued-v2-1_0.html
-    type: html
-    update_frequency: weekly
-    priority: 3
+    priority: 2
 
   # Credential Format Specifications
-  - name: sd_jwt_spec
-    url: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt
-    type: html
-    selectors:
-      sections: "h2, h3"
-    update_frequency: weekly
-    priority: 3
-
   - name: mdoc_iso18013
     url: https://www.iso.org/standard/69084.html
     type: html
     update_frequency: weekly
+    priority: 2
+
+  - name: sd_jwt_spec
+    url: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-selective-disclosure-jwt
+    type: html
+    update_frequency: weekly
     priority: 3
 
-  - name: w3c_vc_data_model
-    url: https://www.w3.org/TR/vc-data-model-2.0/
-    type: html
-    update_frequency: weekly
-    priority: 4
-
-  - name: oid4ida
-    url: https://openid.net/specs/openid-connect-4-identity-assurance-1_0.html
-    type: html
-    update_frequency: weekly
-    priority: 4
-
-# Categories of improvements to look for
-# IMPORTANT: Check existing issues/PRs before proposing!
+# Categories - Focus on INTEROPERABILITY
 categories:
-  - name: age_verification
+  - name: age_verification_interop
     enabled: true
     priority: 1
-    max_per_day: 3
+    max_per_day: 5
     prompt_template: |
-      HIGHEST PRIORITY: Look for age verification interoperability gaps:
-      - EU Age Verification profile compliance (ageverification.dev)
-      - Age-over-X attribute support (age_over_18, age_over_21, etc.)
-      - Zero-knowledge age proofs
-      - Age verification credential issuance
-      - Age verification presentation flows
-      - Integration with EUDI age verification blueprint
+      HIGHEST PRIORITY: Age Verification INTEROPERABILITY with EU AV Blueprint.
+
+      The EU Age Verification solution (ageverification.dev) requires:
+
+      1. CREDENTIAL FORMAT (eu.europa.ec.av.1):
+         - DocType: eu.europa.ec.av.1
+         - Namespace: eu.europa.ec.av.1
+         - Required attribute: age_over_18 (boolean)
+         - Optional: age_over_NN for other thresholds
+         - Format: mdoc (ISO 18013-5) primary, SD-JWT alternative
+         - Validity: Max 3 months
+         - Batch issuance: 30 attestations recommended
+
+      2. PROTOCOLS:
+         - OpenID4VCI for issuance (with wallet attestation)
+         - OpenID4VP for presentation
+         - Same-device and cross-device flows
+
+      3. TRUST FRAMEWORK:
+         - ETSI trusted list validation
+         - Trust anchor certificate verification
+         - Attestation provider registration check
+
+      4. DEVICE SECURITY:
+         - Secure Enclave/TEE key storage
+         - User authentication before presentation
+         - Single-use attestation tracking
+
+      Check what IRMA/Yivi is MISSING for interoperability.
 
   - name: protocols
     enabled: true
     priority: 2
     max_per_day: 2
     prompt_template: |
-      Look for missing or incomplete protocol implementations:
-      - OpenID4VCI (credential issuance) - CHECK IF ALREADY IN DEVELOPMENT
-      - OpenID4VP (credential presentation)
-      - SIOPv2 (self-issued OpenID provider)
-      - ISO 18013-5 (mDL presentation)
-      Identify gaps between the specs and current implementation.
-      DO NOT propose work that is already in progress (check issues/PRs).
+      Protocol gaps for EU AV interoperability:
+      - OpenID4VCI with wallet attestation
+      - OpenID4VP presentation flows
+      - ETSI trusted list fetching
 
   - name: credential_formats
     enabled: true
     priority: 2
     max_per_day: 2
     prompt_template: |
-      Look for missing or incomplete credential format support:
-      - SD-JWT (Selective Disclosure JWT)
-      - mdoc/mDL (ISO 18013-5)
-      - W3C Verifiable Credentials
-      Identify which formats are missing or partially implemented.
-      DO NOT propose work that is already in progress.
-
-  - name: testing
-    enabled: true
-    priority: 3
-    max_per_day: 1
-    prompt_template: |
-      Look for test coverage gaps, especially for:
-      - Age verification flow tests
-      - Protocol flow tests
-      - Credential parsing/validation tests
-
-  - name: standards_compliance
-    enabled: true
-    priority: 3
-    max_per_day: 1
-    prompt_template: |
-      Look for alignment opportunities with:
-      - eIDAS 2.0 requirements
-      - EUDI Wallet ARF specifications
-      - EU Age Verification profile
+      Credential format gaps for EU AV interoperability:
+      - mdoc with eu.europa.ec.av.1 doctype
+      - age_over_18 boolean attribute
+      - Batch issuance support
+      - 3-month validity enforcement

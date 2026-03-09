@@ -1,4 +1,6 @@
 # Configuration for irmago repository
+# Focus: EU Age Verification Interoperability
+
 repository:
   name: irmago
   owner: privacybydesign
@@ -7,23 +9,21 @@ repository:
   lint_command: golangci-lint run
 
   focus_areas:
-    # Age Verification (HIGHEST PRIORITY)
-    - Age verification credential issuance
-    - age_over_X attribute support (age_over_18, age_over_21)
-    - Zero-knowledge age proofs
-    - EU Age Verification profile compliance
-    - Age verification presentation flows
+    # EU Age Verification Interoperability (HIGHEST PRIORITY)
+    - eu.europa.ec.av.1 credential doctype support
+    - age_over_18 boolean attribute
+    - mdoc credential format (ISO 18013-5)
+    - OpenID4VCI with wallet attestation
+    - OpenID4VP presentation protocol
+    - ETSI trusted list validation
+    - Batch issuance (30 attestations)
+    - 3-month credential validity enforcement
+    - Device key binding (MSO)
 
-    # Protocol implementations
-    - OpenID4VCI credential issuance
-    - OpenID4VP credential presentation
-    - SIOPv2 self-issued provider
-    - ISO 18013-5 mDL protocol
-
-    # Credential formats
-    - SD-JWT selective disclosure
-    - mdoc/mDL credentials
-    - W3C Verifiable Credentials
+    # Existing capabilities to leverage
+    - SD-JWT VC credentials
+    - OpenID4VP (partial)
+    - DCQL queries
 
   excluded_paths:
     - vendor/
@@ -31,27 +31,31 @@ repository:
     - .git/
     - node_modules/
 
-# Specific improvement rules for irmago
+# EU Age Verification Interoperability Rules
 rules:
-  age_verification:
-    - Implement age_over_X derived attributes
-    - Add zero-knowledge proof for age verification
-    - Support EU Age Verification credential type
-    - Implement age verification session type
-    - Add age verification specific tests
+  credential_format:
+    - Support mdoc with doctype eu.europa.ec.av.1
+    - Support namespace eu.europa.ec.av.1
+    - Implement age_over_18 boolean attribute
+    - Implement age_over_NN for other thresholds
+    - Enforce max 3-month validity period
+    - Support batch issuance (30 attestations)
+    - NO additional attributes (privacy requirement)
 
-  protocols:
-    - Implement OpenID4VCI for credential issuance (CHECK IF IN PROGRESS)
-    - Add OpenID4VP presentation protocol support
-    - Implement SIOPv2 for wallet authentication
-    - Add ISO 18013-5 device retrieval protocol
+  issuance_protocol:
+    - OpenID4VCI pre-authorized code flow
+    - Wallet attestation authentication
+    - Batch credential endpoint
+    - Device key binding via MSO
 
-  credential_formats:
-    - Add SD-JWT credential support
-    - Implement mdoc credential parsing and creation
-    - Support W3C VC Data Model 2.0
+  presentation_protocol:
+    - OpenID4VP same-device flow
+    - OpenID4VP cross-device flow (QR)
+    - Single-use attestation enforcement
+    - User authentication requirement
 
-  testing:
-    - Age verification flow integration tests
-    - Protocol flow integration tests
-    - Credential format parsing tests
+  trust_framework:
+    - ETSI trusted list fetching
+    - Certificate chain validation
+    - Attestation provider verification
+    - Trust anchor management

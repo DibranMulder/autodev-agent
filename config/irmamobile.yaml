@@ -1,4 +1,6 @@
 # Configuration for irmamobile repository
+# Focus: EU Age Verification Interoperability
+
 repository:
   name: irmamobile
   owner: privacybydesign
@@ -7,23 +9,20 @@ repository:
   lint_command: flutter analyze
 
   focus_areas:
-    # Age Verification UI (HIGHEST PRIORITY)
-    - Age verification consent screens
-    - age_over_X attribute display
-    - Age verification credential cards
-    - Zero-knowledge age proof UI
-    - Age verification flow UX
+    # EU Age Verification Interoperability (HIGHEST PRIORITY)
+    - eu.europa.ec.av.1 credential display
+    - age_over_18 attribute UI
+    - mdoc credential rendering
+    - OpenID4VCI issuance flow
+    - OpenID4VP presentation consent
+    - Single-use attestation tracking
+    - Secure Enclave/TEE key storage
+    - Biometric/PIN authentication
 
-    # Protocol support in mobile
-    - OpenID4VCI credential issuance UI
-    - OpenID4VP presentation flows
-    - SIOPv2 wallet authentication
-    - QR code protocol handling
-
-    # Credential format display
-    - SD-JWT credential rendering
-    - mdoc/mDL credential display
-    - Selective disclosure UI
+    # Existing capabilities to leverage
+    - SD-JWT credential display
+    - OpenID4VP (partial)
+    - Document reading (NFC)
 
   excluded_paths:
     - build/
@@ -32,27 +31,29 @@ repository:
     - ios/Pods/
     - android/.gradle/
 
-# Specific improvement rules for irmamobile
+# EU Age Verification Interoperability Rules
 rules:
-  age_verification:
-    - Add age verification credential card design
-    - Implement age_over_X attribute display
-    - Add clear consent UI for age disclosure
-    - Show only "over 18" vs full birthdate (privacy)
-    - Add age verification success/failure feedback
+  credential_display:
+    - Display eu.europa.ec.av.1 credentials
+    - Show age_over_18 verification status
+    - Privacy-preserving UI (no birthdate shown)
+    - Credential validity indicator
+    - Batch attestation management
 
-  protocols:
-    - Add OpenID4VCI issuance flow UI (CHECK IF IN PROGRESS)
-    - Implement OpenID4VP presentation consent
-    - Support credential offer deep links
-    - Handle authorization request URIs
+  issuance_ui:
+    - OpenID4VCI credential offer handling
+    - Wallet attestation consent
+    - Batch issuance progress
+    - Identity verification flow
 
-  credential_formats:
-    - Display SD-JWT credentials with disclosure options
-    - Render mdoc/mDL credentials
-    - Implement selective attribute disclosure UI
+  presentation_ui:
+    - Age verification consent screen
+    - Clear "proving over 18" messaging
+    - Single-use warning/tracking
+    - Verifier trust indicator
 
-  testing:
-    - Age verification flow widget tests
-    - Widget tests for protocol flow screens
-    - Integration tests for issuance/presentation
+  device_security:
+    - Secure Enclave key generation (iOS)
+    - TEE/Strongbox key generation (Android)
+    - Biometric authentication prompt
+    - PIN fallback authentication
