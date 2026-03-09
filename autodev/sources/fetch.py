@@ -3,7 +3,7 @@
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +38,7 @@ class SourceFetcher:
     def fetch_all(self) -> dict[str, Any]:
         """Fetch all configured sources."""
         results = {
-            "fetched_at": datetime.utcnow().isoformat(),
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
             "sources": {},
         }
 
@@ -86,7 +86,7 @@ class SourceFetcher:
 
         result = {
             "url": source.url,
-            "fetched_at": datetime.utcnow().isoformat(),
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
             "content_hash": content_hash,
             "changed_since_last": changed,
             "content": parsed,

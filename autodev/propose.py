@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from autodev.config import AutoDevConfig
@@ -38,12 +38,17 @@ class ProposalGenerator:
             for opp in opportunities:
                 category = opp.get("category", "other")
                 max_per_day = 3  # Default
+                skip_category = False
 
                 for cat_config in self.config.categories:
                     if cat_config.name == category:
                         max_per_day = cat_config.max_per_day
                         if not cat_config.enabled:
-                            continue
+                            skip_category = True
+                        break
+
+                if skip_category:
+                    continue
 
                 if category_counts.get(category, 0) >= max_per_day:
                     continue
@@ -88,7 +93,7 @@ class ProposalGenerator:
                 f"effort:{opportunity.get('effort', 'small')}",
             ],
             "files_affected": opportunity.get("files_affected", []),
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def _format_issue_body(self, opportunity: dict[str, Any]) -> str:

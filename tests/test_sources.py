@@ -3,8 +3,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
-import responses
 
 from autodev.config import SourceConfig
 from autodev.sources.fetch import SourceFetcher
@@ -30,7 +30,6 @@ def fetcher(tmp_path: Path, source_config: SourceConfig):
     )
 
 
-@responses.activate
 def test_fetch_html_source(fetcher: SourceFetcher, source_config: SourceConfig):
     """Test fetching HTML source."""
     html_content = """
@@ -44,14 +43,12 @@ def test_fetch_html_source(fetcher: SourceFetcher, source_config: SourceConfig):
         </body>
     </html>
     """
-    responses.add(
-        responses.GET,
-        "https://example.com/specs",
-        body=html_content,
-        status=200,
-    )
+    mock_response = MagicMock()
+    mock_response.text = html_content
+    mock_response.raise_for_status = MagicMock()
 
-    result = fetcher.fetch_source(source_config)
+    with patch.object(fetcher.client, "get", return_value=mock_response):
+        result = fetcher.fetch_source(source_config)
 
     assert result["url"] == "https://example.com/specs"
     assert "content_hash" in result
@@ -59,68 +56,58 @@ def test_fetch_html_source(fetcher: SourceFetcher, source_config: SourceConfig):
     assert len(result["content"]["headings"]) == 2
 
 
-@responses.activate
 def test_fetch_all_sources(fetcher: SourceFetcher):
     """Test fetching all configured sources."""
-    responses.add(
-        responses.GET,
-        "https://example.com/specs",
-        body="<html><body><h1>Test</h1></body></html>",
-        status=200,
-    )
+    mock_response = MagicMock()
+    mock_response.text = "<html><body><h1>Test</h1></body></html>"
+    mock_response.raise_for_status = MagicMock()
 
-    results = fetcher.fetch_all()
+    with patch.object(fetcher.client, "get", return_value=mock_response):
+        results = fetcher.fetch_all()
 
     assert "fetched_at" in results
     assert "sources" in results
     assert "test_source" in results["sources"]
 
 
-@responses.activate
 def test_fetch_detects_changes(fetcher: SourceFetcher, source_config: SourceConfig):
     """Test that fetcher detects content changes."""
     # First fetch
-    responses.add(
-        responses.GET,
-        "https://example.com/specs",
-        body="<html><body><h1>Version 1</h1></body></html>",
-        status=200,
-    )
-    result1 = fetcher.fetch_source(source_config)
+    mock_response1 = MagicMock()
+    mock_response1.text = "<html><body><h1>Version 1</h1></body></html>"
+    mock_response1.raise_for_status = MagicMock()
+
+    with patch.object(fetcher.client, "get", return_value=mock_response1):
+        result1 = fetcher.fetch_source(source_config)
     assert result1["changed_since_last"] is True
 
     # Second fetch with same content
-    responses.replace(
-        responses.GET,
-        "https://example.com/specs",
-        body="<html><body><h1>Version 1</h1></body></html>",
-        status=200,
-    )
-    result2 = fetcher.fetch_source(source_config)
+    with patch.object(fetcher.client, "get", return_value=mock_response1):
+        result2 = fetcher.fetch_source(source_config)
     assert result2["changed_since_last"] is False
 
     # Third fetch with different content
-    responses.replace(
-        responses.GET,
-        "https://example.com/specs",
-        body="<html><body><h1>Version 2</h1></body></html>",
-        status=200,
-    )
-    result3 = fetcher.fetch_source(source_config)
+    mock_response2 = MagicMock()
+    mock_response2.text = "<html><body><h1>Version 2</h1></body></html>"
+    mock_response2.raise_for_status = MagicMock()
+
+    with patch.object(fetcher.client, "get", return_value=mock_response2):
+        result3 = fetcher.fetch_source(source_config)
     assert result3["changed_since_last"] is True
 
 
-@responses.activate
 def test_fetch_handles_errors(fetcher: SourceFetcher):
     """Test error handling during fetch."""
-    responses.add(
-        responses.GET,
-        "https://example.com/specs",
-        body="Not Found",
-        status=404,
-    )
-
-    results = fetcher.fetch_all()
+    with patch.object(
+        fetcher.client,
+        "get",
+        side_effect=httpx.HTTPStatusError(
+            "Not Found",
+            request=MagicMock(),
+            response=MagicMock(status_code=404),
+        ),
+    ):
+        results = fetcher.fetch_all()
 
     assert "error" in results["sources"]["test_source"]
 
