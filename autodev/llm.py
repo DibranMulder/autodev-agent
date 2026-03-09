@@ -103,50 +103,39 @@ def _query_cli(
 
 {prompt}"""
 
-        # Write prompt to temp file for complex prompts
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            f.write(full_prompt)
-            prompt_file = f.name
+        # Run claude CLI with --print for non-interactive mode
+        # Using --output-format text for plain text output
+        result = subprocess.run(
+            [
+                "claude",
+                "--print",  # Non-interactive, just print response
+                "--output-format", "text",  # Plain text output
+                "--dangerously-skip-permissions",  # Skip permission prompts for automation
+            ],
+            input=full_prompt,
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+            cwd=os.getcwd(),
+        )
 
-        try:
-            # Run claude CLI with --print for non-interactive mode
-            # Using --output-format text for plain text output
-            result = subprocess.run(
-                [
-                    "claude",
-                    "--print",  # Non-interactive, just print response
-                    "--output-format", "text",  # Plain text output
-                    "--max-turns", "1",  # Single turn
-                ],
-                input=full_prompt,
-                capture_output=True,
-                text=True,
-                timeout=300,  # 5 minute timeout
-                cwd=os.getcwd(),
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or result.stdout.strip()
+            return LLMResponse(
+                content="",
+                success=False,
+                error=f"CLI failed (exit {result.returncode}): {error_msg}",
             )
 
-            if result.returncode != 0:
-                # Try alternative: read from file
-                result = subprocess.run(
-                    ["claude", "--print", "-p", full_prompt],
-                    capture_output=True,
-                    text=True,
-                    timeout=300,
-                    cwd=os.getcwd(),
-                )
+        output = result.stdout.strip()
+        if not output:
+            return LLMResponse(
+                content="",
+                success=False,
+                error="CLI returned empty response",
+            )
 
-            if result.returncode != 0:
-                return LLMResponse(
-                    content="",
-                    success=False,
-                    error=f"CLI failed: {result.stderr}",
-                )
-
-            return LLMResponse(content=result.stdout.strip(), success=True)
-
-        finally:
-            # Clean up temp file
-            Path(prompt_file).unlink(missing_ok=True)
+        return LLMResponse(content=output, success=True)
 
     except FileNotFoundError:
         return LLMResponse(
