@@ -1,0 +1,47 @@
+# Configuration for irmamobile repository
+repository:
+  name: irmamobile
+  owner: privacybydesign
+  language: Dart
+  test_command: flutter test
+  lint_command: flutter analyze
+
+  focus_areas:
+    - Mobile wallet UI/UX
+    - Credential storage and display
+    - QR code scanning
+    - Secure enclave integration
+    - Push notifications
+    - Accessibility
+
+  excluded_paths:
+    - build/
+    - .dart_tool/
+    - .git/
+    - ios/Pods/
+    - android/.gradle/
+
+# Specific improvement rules for irmamobile
+rules:
+  testing:
+    - Widget tests for all screens
+    - Integration tests for critical flows
+    - Golden tests for UI consistency
+    - Test accessibility features
+
+  security:
+    - Secure credential storage
+    - Biometric authentication handling
+    - Secure communication channels
+    - App attestation
+
+  standards:
+    - EUDI Wallet UI guidelines
+    - WCAG 2.1 accessibility
+    - Platform-specific design guidelines
+    - Internationalization support
+
+  documentation:
+    - User-facing feature documentation
+    - Developer setup guide
+    - Architecture decisions

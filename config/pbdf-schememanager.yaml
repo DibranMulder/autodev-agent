@@ -1,0 +1,37 @@
+# Configuration for pbdf-schememanager repository
+repository:
+  name: pbdf-schememanager
+  owner: privacybydesign
+  language: YAML
+  test_command: null  # Schema validation
+  lint_command: null
+
+  focus_areas:
+    - Credential type definitions
+    - Issuer configurations
+    - Public key management
+    - Attribute schemas
+    - Trust anchors
+
+  excluded_paths:
+    - .git/
+
+# Specific improvement rules for pbdf-schememanager
+rules:
+  validation:
+    - Ensure all credential types have valid schemas
+    - Validate issuer public keys
+    - Check for expired certificates
+    - Verify attribute definitions
+
+  standards:
+    - Align with EUDI PID attributes
+    - Support ISO/IEC 18013-5 mDL attributes
+    - Include age verification attributes
+    - Support W3C Verifiable Credentials mapping
+
+  documentation:
+    - Document each credential type
+    - Explain attribute semantics
+    - Provide issuer integration guides
+    - Document key rotation procedures

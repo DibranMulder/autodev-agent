@@ -1,0 +1,77 @@
+# Monitored sources for improvement discovery
+sources:
+  - name: ageverification_dev
+    url: https://ageverification.dev/
+    type: html
+    selectors:
+      specs: "a[href*='spec'], a[href*='standard']"
+      updates: ".update, .news, .changelog"
+    update_frequency: daily
+
+  - name: eudi_wallet_arf
+    url: https://eudi.dev/2.8.0/
+    type: html
+    selectors:
+      requirements: "h2, h3"
+      annexes: "a[href*='annex']"
+    update_frequency: daily
+
+  - name: eudi_github
+    url: https://github.com/eu-digital-identity-wallet
+    type: github
+    update_frequency: daily
+
+  - name: eidas_specs
+    url: https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation
+    type: html
+    update_frequency: weekly
+
+# Categories of improvements to look for
+categories:
+  - name: testing
+    enabled: true
+    priority: 1
+    max_per_day: 2
+    prompt_template: |
+      Look for test coverage gaps, missing unit tests, integration tests,
+      or opportunities to improve test reliability and speed.
+
+  - name: security
+    enabled: true
+    priority: 1
+    max_per_day: 2
+    prompt_template: |
+      Look for security improvements: input validation, cryptographic
+      best practices, secure defaults, vulnerability fixes.
+
+  - name: standards
+    enabled: true
+    priority: 2
+    max_per_day: 2
+    prompt_template: |
+      Look for alignment opportunities with EU digital identity standards:
+      eIDAS 2.0, EUDI Wallet ARF, ISO/IEC standards for identity.
+
+  - name: documentation
+    enabled: true
+    priority: 3
+    max_per_day: 1
+    prompt_template: |
+      Look for documentation improvements: API docs, code comments,
+      README updates, example code.
+
+  - name: performance
+    enabled: true
+    priority: 3
+    max_per_day: 1
+    prompt_template: |
+      Look for performance optimizations: algorithm improvements,
+      caching opportunities, resource efficiency.
+
+  - name: refactoring
+    enabled: true
+    priority: 4
+    max_per_day: 1
+    prompt_template: |
+      Look for code quality improvements: reducing complexity,
+      improving readability, removing duplication.
