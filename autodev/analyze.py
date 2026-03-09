@@ -2,67 +2,16 @@
 
 import json
 import logging
-import os
 import subprocess
 from pathlib import Path
 from typing import Any
 
-from anthropic import Anthropic
-
 from autodev.config import AutoDevConfig, get_repo_config
+from autodev.llm import query_llm, extract_json, get_llm_backend
 
 logger = logging.getLogger(__name__)
 
-
-class RepositoryAnalyzer:
-    """Analyze repositories using Claude to find improvement opportunities."""
-
-    def __init__(self, config: AutoDevConfig):
-        self.config = config
-        self.client = Anthropic()
-
-    def analyze(
-        self,
-        repos_dir: Path,
-        sources_data: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Analyze all repositories for improvements."""
-        results = {
-            "analyzed_at": __import__("datetime").datetime.utcnow().isoformat(),
-            "repositories": {},
-        }
-
-        for repo_config in self.config.repositories:
-            repo_path = repos_dir / repo_config.name
-            if not repo_path.exists():
-                logger.warning(f"Repository {repo_config.name} not found at {repo_path}")
-                continue
-
-            logger.info(f"Analyzing {repo_config.name}...")
-            analysis = self._analyze_repository(repo_path, repo_config, sources_data)
-            results["repositories"][repo_config.name] = analysis
-
-        return results
-
-    def _analyze_repository(
-        self,
-        repo_path: Path,
-        repo_config: Any,
-        sources_data: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Analyze a single repository."""
-        # Gather repository context
-        context = self._gather_context(repo_path, repo_config)
-
-        # Build analysis prompt
-        prompt = self._build_analysis_prompt(context, sources_data, repo_config)
-
-        # Call Claude for analysis
-        response = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-            system="""You are an expert in digital identity protocols and credential formats, analyzing repositories for the Privacy by Design Foundation (IRMA/Yivi project).
+SYSTEM_PROMPT = """You are an expert in digital identity protocols and credential formats, analyzing repositories for the Privacy by Design Foundation (IRMA/Yivi project).
 
 Your PRIMARY goal is to identify missing or incomplete support for:
 
@@ -99,25 +48,82 @@ Output your analysis as JSON with the structure:
             "spec_reference": "Link or section reference to the relevant specification"
         }
     ]
-}""",
+}"""
+
+
+class RepositoryAnalyzer:
+    """Analyze repositories using Claude to find improvement opportunities."""
+
+    def __init__(self, config: AutoDevConfig):
+        self.config = config
+
+    def analyze(
+        self,
+        repos_dir: Path,
+        sources_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Analyze all repositories for improvements."""
+        from datetime import datetime, timezone
+
+        results = {
+            "analyzed_at": datetime.now(timezone.utc).isoformat(),
+            "llm_backend": get_llm_backend(),
+            "repositories": {},
+        }
+
+        for repo_config in self.config.repositories:
+            repo_path = repos_dir / repo_config.name
+            if not repo_path.exists():
+                logger.warning(f"Repository {repo_config.name} not found at {repo_path}")
+                continue
+
+            logger.info(f"Analyzing {repo_config.name} using {get_llm_backend()} backend...")
+            analysis = self._analyze_repository(repo_path, repo_config, sources_data)
+            results["repositories"][repo_config.name] = analysis
+
+        return results
+
+    def _analyze_repository(
+        self,
+        repo_path: Path,
+        repo_config: Any,
+        sources_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Analyze a single repository."""
+        # Gather repository context
+        context = self._gather_context(repo_path, repo_config)
+
+        # Build analysis prompt
+        prompt = self._build_analysis_prompt(context, sources_data, repo_config)
+
+        # Query LLM
+        response = query_llm(
+            prompt=prompt,
+            system_prompt=SYSTEM_PROMPT,
+            max_tokens=4096,
         )
 
-        # Parse response
-        try:
-            content = response.content[0].text
-            # Extract JSON from response
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0]
-            return json.loads(content)
-        except (json.JSONDecodeError, IndexError) as e:
-            logger.error(f"Failed to parse analysis response: {e}")
+        if not response.success:
+            logger.error(f"LLM query failed: {response.error}")
             return {
                 "summary": "Analysis failed",
                 "opportunities": [],
-                "error": str(e),
+                "error": response.error,
             }
+
+        # Parse response
+        result = extract_json(response.content)
+
+        if result is None:
+            logger.error("Failed to parse JSON from LLM response")
+            return {
+                "summary": "Analysis failed - invalid JSON response",
+                "opportunities": [],
+                "error": "Failed to parse JSON",
+                "raw_response": response.content[:2000],
+            }
+
+        return result
 
     def _gather_context(self, repo_path: Path, repo_config: Any) -> dict[str, Any]:
         """Gather context about a repository."""

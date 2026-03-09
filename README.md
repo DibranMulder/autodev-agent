@@ -112,24 +112,67 @@ See `config/` for repository-specific settings:
 
 ## Setup
 
+### For GitHub Actions (Production)
+
 1. Fork this repository to the Privacy by Design Foundation organization
 2. Configure repository secrets:
-   - `ANTHROPIC_API_KEY` - For Claude Code agent
+   - `ANTHROPIC_API_KEY` - Anthropic API key for Claude
    - `GH_PAT` - GitHub Personal Access Token with repo access
 3. Enable GitHub Actions
 4. Create initial tracking issue in each target repository
 
+### For Local Development
+
+The agent supports two LLM backends:
+
+| Backend | When Used | Setup Required |
+|---------|-----------|----------------|
+| **Claude Code CLI** | When `ANTHROPIC_API_KEY` is NOT set | Install Claude Code CLI |
+| **Anthropic API** | When `ANTHROPIC_API_KEY` IS set | Set API key |
+
+**Using Claude Code CLI (Recommended for local development):**
+
+```bash
+# Install Claude Code CLI (if not already installed)
+npm install -g @anthropic-ai/claude-code
+
+# Make sure you're logged in
+claude --version
+
+# Run without API key - uses Claude Code CLI
+python -m autodev.main discover --repos repos --config config --output data --dry-run
+```
+
+**Using Anthropic API:**
+
+```bash
+# Set API key
+export ANTHROPIC_API_KEY=your-api-key
+
+# Now runs using API
+python -m autodev.main discover --repos repos --config config --output data --dry-run
+```
+
 ## Development
 
 ```bash
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
 # Install dependencies
 pip install -r requirements.txt
 
-# Run locally
-python -m autodev.main --dry-run
+# Clone target repositories
+mkdir -p repos
+gh repo clone privacybydesign/irmago repos/irmago -- --depth=1
+gh repo clone privacybydesign/irmamobile repos/irmamobile -- --depth=1
+
+# Run discovery (dry-run mode)
+python -m autodev.main discover --repos repos --config config --output data --dry-run
 
 # Run tests
-pytest tests/
+pytest tests/ -v
 ```
 
 ## Principles

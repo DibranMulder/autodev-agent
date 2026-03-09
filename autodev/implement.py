@@ -1,18 +1,27 @@
-"""Implement approved issues using Claude Code."""
+"""Implement approved issues using Claude."""
 
 import json
 import logging
-import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from anthropic import Anthropic
-
 from autodev.config import AutoDevConfig, get_repo_config
+from autodev.llm import query_llm, extract_json, get_llm_backend
 
 logger = logging.getLogger(__name__)
+
+SYSTEM_PROMPT = """You are an expert software developer implementing improvements for the Privacy by Design Foundation.
+Generate clean, tested, maintainable code following existing patterns.
+
+When implementing changes:
+1. Follow the existing code style and patterns in the repository
+2. Include appropriate tests for new functionality
+3. Keep changes focused and minimal
+4. Ensure backwards compatibility
+
+Return only valid JSON with the implementation plan."""
 
 
 @dataclass
@@ -34,7 +43,6 @@ class Implementer:
 
     def __init__(self, config: AutoDevConfig):
         self.config = config
-        self.client = Anthropic()
 
     def implement(
         self,
@@ -60,12 +68,13 @@ class Implementer:
         context = self._gather_context(repo_path, repo_config)
 
         # Generate implementation plan
+        logger.info(f"Generating implementation using {get_llm_backend()} backend...")
         plan = self._generate_plan(issue, context, repo_config)
 
         if not plan.get("changes"):
             return ImplementationResult(
                 success=False,
-                error="No changes generated",
+                error=plan.get("error", "No changes generated"),
             )
 
         # Apply changes
@@ -180,25 +189,23 @@ Return JSON with this structure:
     "test_instructions": "How to test these changes"
 }}"""
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
+        response = query_llm(
+            prompt=prompt,
+            system_prompt=SYSTEM_PROMPT,
             max_tokens=8192,
-            messages=[{"role": "user", "content": prompt}],
-            system="""You are an expert software developer implementing improvements for the Privacy by Design Foundation.
-Generate clean, tested, maintainable code following existing patterns.
-Return only valid JSON.""",
         )
 
-        try:
-            content = response.content[0].text
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0]
-            return json.loads(content)
-        except (json.JSONDecodeError, IndexError) as e:
-            logger.error(f"Failed to parse implementation plan: {e}")
-            return {"changes": [], "error": str(e)}
+        if not response.success:
+            logger.error(f"LLM query failed: {response.error}")
+            return {"changes": [], "error": response.error}
+
+        result = extract_json(response.content)
+
+        if result is None:
+            logger.error("Failed to parse implementation plan JSON")
+            return {"changes": [], "error": "Failed to parse JSON"}
+
+        return result
 
     def _apply_change(self, repo_path: Path, change: dict[str, Any]) -> None:
         """Apply a single change to the repository."""
