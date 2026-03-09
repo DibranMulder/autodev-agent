@@ -7,24 +7,23 @@ repository:
   lint_command: golangci-lint run
 
   focus_areas:
+    # Age Verification (HIGHEST PRIORITY)
+    - Age verification credential issuance
+    - age_over_X attribute support (age_over_18, age_over_21)
+    - Zero-knowledge age proofs
+    - EU Age Verification profile compliance
+    - Age verification presentation flows
+
     # Protocol implementations
     - OpenID4VCI credential issuance
     - OpenID4VP credential presentation
     - SIOPv2 self-issued provider
     - ISO 18013-5 mDL protocol
-    - OID4IDA identity assurance
 
     # Credential formats
     - SD-JWT selective disclosure
     - mdoc/mDL credentials
     - W3C Verifiable Credentials
-    - JWT-VC format
-
-    # Core functionality
-    - IRMA session handling
-    - Credential issuance flows
-    - Attribute disclosure protocols
-    - Cryptographic operations
 
   excluded_paths:
     - vendor/
@@ -34,33 +33,25 @@ repository:
 
 # Specific improvement rules for irmago
 rules:
+  age_verification:
+    - Implement age_over_X derived attributes
+    - Add zero-knowledge proof for age verification
+    - Support EU Age Verification credential type
+    - Implement age verification session type
+    - Add age verification specific tests
+
   protocols:
-    - Implement OpenID4VCI for credential issuance (draft-13+)
+    - Implement OpenID4VCI for credential issuance (CHECK IF IN PROGRESS)
     - Add OpenID4VP presentation protocol support
     - Implement SIOPv2 for wallet authentication
     - Add ISO 18013-5 device retrieval protocol
-    - Support OID4IDA for identity assurance levels
-    - Implement credential offer handling
-    - Add presentation definition support
 
   credential_formats:
-    - Add SD-JWT credential support (selective disclosure)
+    - Add SD-JWT credential support
     - Implement mdoc credential parsing and creation
     - Support W3C VC Data Model 2.0
-    - Add JWT-VC credential handling
-    - Implement credential status checking (StatusList2021)
-    - Support key binding for holder binding
 
   testing:
+    - Age verification flow integration tests
     - Protocol flow integration tests
     - Credential format parsing tests
-    - Cross-format interoperability tests
-    - Cryptographic operation tests
-    - Session handling tests
-
-  security:
-    - Implement proof-of-possession for credentials
-    - Add holder binding verification
-    - Secure key storage integration
-    - Protocol replay protection
-    - Validate credential schemas

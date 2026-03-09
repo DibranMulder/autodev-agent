@@ -7,45 +7,50 @@ from pathlib import Path
 from typing import Any
 
 from autodev.config import AutoDevConfig, get_repo_config
+from autodev.existing_work import (
+    ExistingWork,
+    check_existing_work,
+    format_existing_work_context,
+    is_duplicate_proposal,
+)
 from autodev.llm import query_llm, extract_json, get_llm_backend
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert in digital identity protocols and credential formats, analyzing repositories for the Privacy by Design Foundation (IRMA/Yivi project).
+SYSTEM_PROMPT = """You are an expert in digital identity protocols and age verification, analyzing repositories for the Privacy by Design Foundation (IRMA/Yivi project).
 
-Your PRIMARY goal is to identify missing or incomplete support for:
+## CRITICAL RULES:
+1. **DO NOT propose work that is already in progress** - Check the existing issues and PRs provided
+2. **PRIORITIZE AGE VERIFICATION** - This is the highest priority for EUDI compliance
+3. **Be specific** - Each proposal should be a single, well-defined task
 
-## Protocols to look for:
-- OpenID4VCI (Verifiable Credential Issuance) - credential offer, authorization, token, credential endpoints
-- OpenID4VP (Verifiable Presentations) - presentation definition, submission, response
-- SIOPv2 (Self-Issued OpenID Provider) - wallet authentication
-- ISO 18013-5 (mDL) - device retrieval, session establishment
-- OID4IDA (Identity Assurance) - verified claims, assurance levels
+## PRIMARY FOCUS: Age Verification Interoperability
+The EU Age Verification solution (ageverification.dev) defines how wallets should:
+- Issue age verification credentials (age_over_18, age_over_21, etc.)
+- Present age proofs using zero-knowledge or selective disclosure
+- Integrate with the EUDI Wallet ARF age verification profile
 
-## Credential Formats to look for:
-- SD-JWT (Selective Disclosure JWT) - disclosures, key binding
-- mdoc/mDL (ISO 18013-5) - CBOR encoding, device authentication
-- W3C Verifiable Credentials 2.0 - JSON-LD, proof formats
-- JWT-VC - JWT-encoded verifiable credentials
+## Secondary Focus: Protocol & Format Support
+- OpenID4VCI/VP protocols
+- SD-JWT and mdoc credential formats
+- SIOPv2 wallet authentication
 
-For each gap found, propose a small, incremental improvement that:
-1. Adds ONE specific protocol endpoint or credential format feature
-2. Includes tests for the new functionality
-3. Is implementable in a single PR
-
-Output your analysis as JSON with the structure:
+## Output Format
+Return JSON with this structure:
 {
-    "summary": "Brief overview of current protocol/format support",
+    "summary": "Brief overview of current state and gaps",
+    "existing_work_acknowledged": ["list of existing issues/PRs you considered"],
     "opportunities": [
         {
-            "category": "protocols|credential_formats|testing|security|standards_compliance",
-            "title": "Short title (e.g., 'Add OpenID4VCI credential offer endpoint')",
-            "description": "Detailed description including spec references",
-            "files_affected": ["list of files to modify or create"],
+            "category": "age_verification|protocols|credential_formats|testing|standards_compliance",
+            "title": "Short, specific title",
+            "description": "Detailed description with spec references",
+            "files_affected": ["list of files"],
             "priority": 1-5 (1 highest),
             "effort": "small|medium|large",
-            "rationale": "Why this is needed for EUDI/eIDAS compliance",
-            "spec_reference": "Link or section reference to the relevant specification"
+            "rationale": "Why this matters for age verification/EUDI compliance",
+            "spec_reference": "Link to relevant specification",
+            "not_duplicate_because": "Explain why this doesn't duplicate existing work"
         }
     ]
 }"""
@@ -77,8 +82,29 @@ class RepositoryAnalyzer:
                 logger.warning(f"Repository {repo_config.name} not found at {repo_path}")
                 continue
 
+            full_repo_name = f"{repo_config.owner}/{repo_config.name}"
+
+            # Check for existing work FIRST
+            logger.info(f"Checking existing work in {full_repo_name}...")
+            existing_work = check_existing_work(full_repo_name, repo_path)
+
             logger.info(f"Analyzing {repo_config.name} using {get_llm_backend()} backend...")
-            analysis = self._analyze_repository(repo_path, repo_config, sources_data)
+            analysis = self._analyze_repository(
+                repo_path, repo_config, sources_data, existing_work
+            )
+
+            # Filter out duplicates
+            if "opportunities" in analysis:
+                filtered = []
+                for opp in analysis["opportunities"]:
+                    is_dup, reason = is_duplicate_proposal(opp.get("title", ""), existing_work)
+                    if is_dup:
+                        logger.info(f"Filtered duplicate proposal: {opp.get('title')} - {reason}")
+                    else:
+                        filtered.append(opp)
+                analysis["opportunities"] = filtered
+                analysis["filtered_duplicates"] = len(analysis.get("opportunities", [])) - len(filtered)
+
             results["repositories"][repo_config.name] = analysis
 
         return results
@@ -88,13 +114,16 @@ class RepositoryAnalyzer:
         repo_path: Path,
         repo_config: Any,
         sources_data: dict[str, Any],
+        existing_work: ExistingWork,
     ) -> dict[str, Any]:
         """Analyze a single repository."""
         # Gather repository context
         context = self._gather_context(repo_path, repo_config)
 
-        # Build analysis prompt
-        prompt = self._build_analysis_prompt(context, sources_data, repo_config)
+        # Build analysis prompt with existing work context
+        prompt = self._build_analysis_prompt(
+            context, sources_data, repo_config, existing_work
+        )
 
         # Query LLM
         response = query_llm(
@@ -131,8 +160,6 @@ class RepositoryAnalyzer:
             "structure": [],
             "readme": "",
             "recent_commits": [],
-            "open_issues": [],
-            "test_coverage": None,
         }
 
         # Get directory structure
@@ -149,7 +176,7 @@ class RepositoryAnalyzer:
             # Filter out excluded paths
             for excluded in repo_config.excluded_paths:
                 files = [f for f in files if excluded not in f]
-            context["structure"] = files[:100]  # Limit
+            context["structure"] = files[:100]
         except Exception as e:
             logger.warning(f"Failed to get structure: {e}")
 
@@ -163,7 +190,7 @@ class RepositoryAnalyzer:
         # Get recent commits
         try:
             result = subprocess.run(
-                ["git", "log", "--oneline", "-20"],
+                ["git", "log", "--oneline", "-30"],
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
@@ -180,57 +207,81 @@ class RepositoryAnalyzer:
         context: dict[str, Any],
         sources_data: dict[str, Any],
         repo_config: Any,
+        existing_work: ExistingWork,
     ) -> str:
         """Build the analysis prompt."""
-        # Extract relevant source information
+        # Format existing work context
+        existing_work_context = format_existing_work_context(existing_work)
+
+        # Extract age verification specific info from sources
+        age_verification_info = ""
+        for name, data in sources_data.get("sources", {}).items():
+            if "ageverification" in name.lower() or "age" in name.lower():
+                if "error" not in data:
+                    content = data.get("content", {})
+                    headings = content.get("headings", [])
+                    age_verification_info += f"\n### {name}\n"
+                    for h in headings[:15]:
+                        age_verification_info += f"- {h.get('text', '')}\n"
+
+        # Extract other source summaries
         source_summary = []
         for name, data in sources_data.get("sources", {}).items():
-            if "error" not in data:
+            if "error" not in data and "ageverification" not in name.lower():
                 content = data.get("content", {})
                 headings = content.get("headings", [])
-                source_summary.append(f"## {name}\nHeadings: {headings[:10]}")
+                source_summary.append(f"## {name}\nHeadings: {[h.get('text', '') for h in headings[:5]]}")
 
-        return f"""Analyze this repository for MISSING PROTOCOLS and CREDENTIAL FORMATS.
+        return f"""Analyze this repository for improvement opportunities.
+IMPORTANT: Focus on AGE VERIFICATION first, then other gaps.
+CRITICAL: DO NOT propose work that duplicates existing issues or PRs!
 
 ## Repository: {repo_config.name}
 Language: {repo_config.language}
 Focus areas: {', '.join(repo_config.focus_areas)}
 
+## EXISTING WORK - DO NOT DUPLICATE
+{existing_work_context}
+
 ## File Structure (sample)
-{chr(10).join(context['structure'][:50])}
+{chr(10).join(context['structure'][:40])}
 
 ## README
-{context['readme'][:3000]}
+{context['readme'][:2500]}
 
 ## Recent Commits
-{chr(10).join(context['recent_commits'])}
+{chr(10).join(context['recent_commits'][:20])}
 
-## Relevant Standards Updates
-{chr(10).join(source_summary)}
+## AGE VERIFICATION STANDARDS (HIGHEST PRIORITY)
+{age_verification_info}
 
-## CRITICAL: Protocol & Credential Format Analysis
+## Other Standards Updates
+{chr(10).join(source_summary[:5])}
 
-Search the codebase for implementations of:
+## Analysis Tasks
 
-### Protocols (check if present/complete):
-1. **OpenID4VCI**: Look for credential_offer, authorization endpoint, token endpoint, credential endpoint
-2. **OpenID4VP**: Look for presentation_definition, vp_token, presentation_submission
-3. **SIOPv2**: Look for self-issued ID token, subject_syntax_types_supported
-4. **ISO 18013-5**: Look for mdoc, device retrieval, session transcript
-5. **OID4IDA**: Look for verified_claims, assurance_level
+### 1. Age Verification (PRIORITY 1)
+Check for:
+- age_over_X attribute support (age_over_18, age_over_21, etc.)
+- Zero-knowledge age proof implementation
+- Age verification credential issuance
+- Age verification presentation flows
+- EU Age Verification profile compliance
 
-### Credential Formats (check if present/complete):
-1. **SD-JWT**: Look for _sd, _sd_alg, disclosures, kb-jwt
-2. **mdoc**: Look for CBOR, IssuerSigned, DeviceSigned, DocType
-3. **W3C VC**: Look for @context, verifiableCredential, proof
-4. **JWT-VC**: Look for vc claim in JWT, credentialSubject
+### 2. Protocol Gaps (PRIORITY 2)
+Only if NOT already in progress:
+- OpenID4VCI, OpenID4VP, SIOPv2, ISO 18013-5
 
-## Task
-Identify 3-5 SPECIFIC missing protocol endpoints or credential format features.
-Each should be:
-- A single, well-defined addition (not "implement all of OpenID4VCI")
-- Testable with unit and integration tests
-- Referenced to specific spec sections
+### 3. Credential Format Gaps (PRIORITY 2)
+Only if NOT already in progress:
+- SD-JWT, mdoc, W3C VC
+
+## Rules
+1. Check existing issues/PRs before proposing anything
+2. Explain why each proposal doesn't duplicate existing work
+3. Prioritize age verification over other improvements
+4. Be specific - one clear task per proposal
+5. Maximum 5 proposals, sorted by priority
 
 Return your analysis as JSON."""
 
